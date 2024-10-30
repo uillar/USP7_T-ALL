@@ -1,0 +1,257 @@
+---
+title: "USP7alt_survival"
+author: "Unai Illarregi Insausti"
+date: '`r Sys.Date()`'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+```
+
+## Prepare the environment
+
+```{r Packages, message = FALSE, warning = FALSE}
+library(survival)
+suppressPackageStartupMessages(library(survminer))
+library(readxl)
+library(survivalROC)
+```
+
+## Input data
+
+We prepare the input data
+
+```{r input database, message = FALSE, warning = FALSE}
+full <- read_excel("Blood.xlsx")
+```
+
+## Only USP7
+
+```{r USP7, message = FALSE, warning = FALSE}
+#OS
+fit <- survfit(Surv(OS_Time, OS_Status) ~ USP7, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS USP7 alt"))
+
+#EFS
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ USP7, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS USP7 alt"))
+```
+
+## Only NOTCH1 and/or FBXW7
+
+```{r N/Falt, message = FALSE, warning = FALSE}
+#OS
+fit <- survfit(Surv(OS_Time, OS_Status) ~ NF, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS NOTCH1 and/or FBXW7 alt"))
+
+#EFS
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ NF, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS NOTCH1 and/or FBXW7 alt"))
+```
+
+## Integrating USP7 & NOTCH1/FBXW7
+
+```{r full USP7 NOTCH1, message = FALSE, warning = FALSE}
+fit <- survfit(Surv(OS_Time, OS_Status) ~ Mutations_risk, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS Mutations"))
+(pairwise_results <- pairwise_survdiff(Surv(OS_Time, OS_Status) ~ Mutations_risk, data = full, p.adjust.method = "BH"))
+
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ Mutations_risk, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS Mutations"))
+(pairwise_results <- pairwise_survdiff(Surv(EFS_Time, EFS_Status) ~ Mutations_risk, data = full, p.adjust.method = "BH"))
+
+fit <- survfit(Surv(OS_Time, OS_Status) ~ Mutations_risk_2groups, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS Mutations"))
+
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ Mutations_risk_2groups, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS Mutations"))
+```
+
+##Only CNS
+
+```{r CNS status, message = FALSE, warning = FALSE}
+#OS
+fit <- survfit(Surv(OS_Time, OS_Status) ~ CNS, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS CNS status"))
+(pairwise_results <- pairwise_survdiff(Surv(OS_Time, OS_Status) ~ CNS, data = full, p.adjust.method = "BH"))
+
+#EFS
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ CNS, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS CNS status"))
+(pairwise_results <- pairwise_survdiff(Surv(EFS_Time, EFS_Status) ~ CNS, data = full, p.adjust.method = "BH"))
+
+#OS
+fit <- survfit(Surv(OS_Time, OS_Status) ~ CNS3, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS CNS status"))
+
+#EFS
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ CNS3, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS CNS status"))
+```
+
+```{r CNS status + USP7 & NOTCH1/FBXW7 mutations, message = FALSE, warning = FALSE}
+#OS
+fit <- survfit(Surv(OS_Time, OS_Status) ~ Mut_CNS, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS CNS status + mutations"))
+(pairwise_results <- pairwise_survdiff(Surv(OS_Time, OS_Status) ~ Mut_CNS, data = full, p.adjust.method = "BH"))
+
+#EFS
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ Mut_CNS, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = F,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS CNS status + mutations"))
+(pairwise_results <- pairwise_survdiff(Surv(EFS_Time, EFS_Status) ~ Mut_CNS, data = full, p.adjust.method = "BH"))
+
+#OS
+fit <- survfit(Surv(OS_Time, OS_Status) ~ Mut_CNS_2groups, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for OS CNS status + mutations"))
+
+#EFS
+fit <- survfit(Surv(EFS_Time, EFS_Status) ~ Mut_CNS_2groups, data = full)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (months)",
+           title = paste0("KM curve for EFS CNS status + mutations"))
+```
+
+## Cox PH analyses
+
+```{r Cox 1, message = FALSE, warning = FALSE}
+# Variables as factors and no mutations as referece
+full$USP7 <- as.factor(as.character(full$USP7))
+full$USP7 <- relevel(full$USP7, ref = "No")
+full$NF <- as.factor(as.character(full$NF))
+full$NF <- relevel(full$NF, ref = "No")
+full$CNS3 <- as.factor(as.character(full$CNS3))
+full$CNS3 <- relevel(full$CNS3, ref = "No")
+
+Cox_OS = coxph(Surv(OS_Time, OS_Status) ~ USP7 + CNS3 + NF, data = full, x = T)
+summary(Cox_OS)
+cox.zph(Cox_OS)
+ggforest(Cox_OS, main = paste0("Forest plot for OS"))
+
+Cox_EFS = coxph(Surv(EFS_Time, EFS_Status) ~ USP7 + CNS3 + NF, data = full, x = T)
+summary(Cox_EFS)
+cox.zph(Cox_EFS)
+ggforest(Cox_EFS, main = paste0("Forest plot for EFS"))
+```
