@@ -1,0 +1,239 @@
+---
+title: "USP7_SNVs in pediatric T-ALL"
+author: "Unai Illarregi Insausti"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+```
+
+## Prepare the environment
+
+```{r Packages, message = FALSE, warning = FALSE}
+library(readxl)
+library(survival)
+library(survivalROC)
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(survminer))
+setwd("C:/Users/834733/Documents/EHU/Lab/ALL/T-ALL/USP7/Blood/Revision")
+```
+
+## Input data
+
+```{r COG input, message = FALSE, warning = FALSE}
+COG <- data.frame(read_excel("Polonen/Polonen_metaData.xlsx", sheet = "Polonen_metaData_rs"), row.names = 1)
+children <- subset(COG, COG$Age.group == "children")
+```
+
+## Stats
+
+```{r proportions, message=FALSE, warning=FALSE}
+# Frequency tables
+table(COG$USP7_snv)
+table(COG$USP7_snv, COG$EFS.status)
+table(COG$USP7_snv, COG$DFS.status)
+table(COG$USP7_snv, COG$Reviewed.subtype)
+table(COG$USP7_snv, COG$ETP.STATUS)
+table(COG$USP7_snv, COG$Day.29.MRD_0.1)
+table(COG$USP7_snv, COG$CNS3)
+table(COG$USP7_snv, COG$WBC.200)
+table(COG$USP7_snv, COG$Sex)
+
+# Chi-square test of independence and standarized residuals
+table <- table(COG$USP7_snv, COG$Reviewed.subtype)
+(chi <- chisq.test(table))
+chi$stdres
+
+table <- table(COG$USP7_snv, COG$ETP.STATUS)
+(chi <- chisq.test(table))
+chi$stdres
+```
+
+```{r frequencies, message = FALSE, warning = FALSE}
+print(paste0("USP7_snv is altered in: ", prop.table(table(children$USP7))*100))
+print(paste0("NOTCH1_snv is altered in: ", prop.table(table(children$NOTCH1))*100))
+print(paste0("FBXW7_snv is altered in: ", prop.table(table(children$FBXW7))*100))
+print(paste0("N/F_snv is altered in: ", prop.table(table(children$NF))*100))
+print(paste0("PTEN_snv is altered in: ", prop.table(table(children$PTEN))*100))
+print(paste0("IKZF1_snv is altered in: ", prop.table(table(children$IKZF1))*100))
+print(paste0("TP53_snv is altered in: ", prop.table(table(children$TP53))*100))
+print(paste0("PHF6_snv is altered in: ", prop.table(table(children$PHF6))*100))
+print(paste0("KRAS_snv is altered in: ", prop.table(table(children$KRAS))*100))
+print(paste0("NRAS_snv is altered in: ", prop.table(table(children$NRAS))*100))
+print(paste0("EP300_snv is altered in: ", prop.table(table(children$EP300))*100))
+print(paste0("PIK3CA_snv is altered in: ", prop.table(table(children$PIK3CA))*100))
+print(paste0("PIK3R1_snv is altered in: ", prop.table(table(children$PIK3R1))*100))
+print(paste0("DNMT3A_snv is altered in: ", prop.table(table(children$DNMT3A))*100))
+print(paste0("USP11_snv is altered in: ", prop.table(table(children$USP11))*100))
+```
+
+## Kaplan-Meier survival curves for USP7 SNVs
+
+```{r KM, message=FALSE, warning=FALSE}
+#options(max.print = 10000)
+#EFS
+fit <- survfit(Surv(EFS_yrs, EFS.status) ~ USP7_snv, data = COG)
+#summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (years)",
+           title = paste0("KM curve for EFS"))
+
+#DFS
+fit <- survfit(Surv(DFS_yrs, DFS.status) ~ USP7_snv, data = COG)
+#summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (years)",
+           title = paste0("KM curve for DFS"))
+
+#EFS
+fit <- survfit(Surv(EFS_yrs, EFS.status) ~ USP7_snv, data = children)
+#summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (years)",
+           title = paste0("KM curve for EFS in children"))
+
+#DFS
+fit <- survfit(Surv(DFS_yrs, DFS.status) ~ USP7_snv, data = children)
+#summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (years)",
+           title = paste0("KM curve for DFS in children"))
+```
+
+# Multivariate Cox proportional hazards analyses
+
+```{r Cox, message = FALSE, warning = FALSE}
+model_EFS = coxph(Surv(EFS_yrs, EFS.status) ~ USP7_snv + NF + CNS3 + WBC.200 + Day.29.MRD_0.1 + Sex + Age.at.Diagnosis.in.Years + ETP.STATUS + TP53 + PTEN + PIK3CA + PIK3R1 + IKZF1 + KRAS + NRAS + EP300 + DNMT3A + PHF6, data = children, x = T)
+summary(model_EFS)
+round(cox.zph(model_EFS)$table, 2)
+ggforest(model_EFS, main = "COG children EFS",  noDigits = 2, fontsize = 0.7, refLabel = "")
+
+model_DFS = coxph(Surv(DFS_yrs, DFS.status) ~ USP7_snv + NF + CNS3 + WBC.200 + Day.29.MRD_0.1 + Sex + Age.at.Diagnosis.in.Years + ETP.STATUS + TP53 + PTEN + PIK3CA + PIK3R1 + IKZF1 + KRAS + NRAS + EP300 + DNMT3A + PHF6, data = children, x = T)
+summary(model_DFS)
+round(cox.zph(model_DFS)$table, 2)
+ggforest(model_DFS, main = "COG children DFS",  noDigits = 2, fontsize = 0.7, refLabel = "")
+```
+
+# RISK groups in children
+
+```{r KM_groups, message=FALSE, warning=FALSE}
+# Groups in children
+children <- children %>%
+  mutate(RISK = case_when(
+    Day.29.MRD_0.1 == "positive" & (USP7_snv == "yes" | CNS3 == "yes") ~ "Very-high",
+    Day.29.MRD_0.1 == "positive" | USP7_snv == "yes" | CNS3 == "yes" ~ "High",
+    TRUE ~ "Intermediate"))
+
+# Exact p-values
+survdiff(Surv(EFS, EFS.status) ~ RISK, data = children)$pvalue
+pairwise_survdiff(Surv(EFS, EFS.status) ~ RISK, data = children, p.adjust.method = "BH")
+survdiff(Surv(DFS, DFS.status) ~ RISK, data = children)$pvalue
+pairwise_survdiff(Surv(DFS, DFS.status) ~ RISK, data = children, p.adjust.method = "BH")
+
+#EFS KM curve
+fit <- survfit(Surv(EFS_yrs, EFS.status) ~ RISK, data = children)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (years)",
+           title = paste0("KM curve for EFS COG children"))
+
+#DFS KM curve
+fit <- survfit(Surv(DFS_yrs, DFS.status) ~ RISK, data = children)
+summary(fit)
+print(fit)
+ggsurvplot(fit,
+           pval = T,
+           conf.int = F,
+           risk.table = T,
+           surv.median.line = "hv",
+           xlab = "Time (years)",
+           title = paste0("KM curve for DFS COG children"))
+```
+
+# Expression
+
+```{r Expression, message = FALSE, warning = FALSE}
+# Input counts
+# full cohort
+TALL_X01_counts <- data.frame(read.delim("COG/TALL_X01_counts.tsv"), row.names = 1)
+TALL_X01_counts <- TALL_X01_counts[, rownames(COG)]
+print(identical(rownames(COG), colnames(TALL_X01_counts))) #Must be TRUE
+
+# children
+TALL_X01_counts_children <- TALL_X01_counts[, rownames(children)]
+print(identical(rownames(children), colnames(TALL_X01_counts_children))) #Must be TRUE
+
+# DEA for full cohort
+# USP7_snv: yes vs. no
+dds_USP7_snv <- DESeqDataSetFromMatrix(countData = TALL_X01_counts, colData = COG, design = ~USP7_snv)
+dds_USP7_snv <- DESeq(dds_USP7_snv)
+DEA_res_USP7_snv = data.frame(na.omit(results(dds_USP7_snv, contrast=c("USP7_snv","yes","no"))))
+DEA_res_USP7_snv_sig = DEA_res_USP7_snv %>% filter(padj < 0.01, log2FoldChange < -1.5 | log2FoldChange > 1.5)
+write.table(DEA_res_USP7_snv_sig, "DEA_res_USP7_snv_sig.txt", sep = "\t")
+
+# USP7: yes vs. no
+dds_USP7 <- DESeqDataSetFromMatrix(countData = TALL_X01_counts, colData = COG, design = ~USP7)
+dds_USP7 <- DESeq(dds_USP7)
+DEA_res_USP7 = data.frame(na.omit(results(dds_USP7, contrast=c("USP7","yes","no"))))
+DEA_res_USP7_sig = DEA_res_USP7 %>% filter(padj < 0.01, log2FoldChange < -1.5 | log2FoldChange > 1.5)
+write.table(DEA_res_USP7_sig, "DEA_res_USP7_sig.txt", sep = "\t")
+
+# USP7alt: snv vs. nosnv
+COG2 <- subset(COG, COG$USP7 == "yes")
+TALL_X01_counts2 <- TALL_X01_counts[,rownames(COG2)]
+dds_USP7alt <- DESeqDataSetFromMatrix(countData = TALL_X01_counts2, colData = COG2, design = ~USP7_snv)
+dds_USP7alt <- DESeq(dds_USP7alt)
+DEA_res_USP7alt = data.frame(na.omit(results(dds_USP7alt, contrast=c("USP7_snv","yes","no"))))
+DEA_res_USP7alt_sig = DEA_res_USP7alt %>% filter(padj < 0.01, log2FoldChange < -1.5 | log2FoldChange > 1.5)
+
+# DEA for children
+# USP7_snv: yes vs. no
+dds_USP7_snvc <- DESeqDataSetFromMatrix(countData = TALL_X01_counts_children, colData = children, design = ~USP7_snv)
+dds_USP7_snvc <- DESeq(dds_USP7_snvc)
+DEA_res_USP7_snvc = data.frame(na.omit(results(dds_USP7_snvc, contrast=c("USP7_snv","yes","no"))))
+DEA_res_USP7_snvc_sig = DEA_res_USP7_snvc %>% filter(padj < 0.01, log2FoldChange < -1.5 | log2FoldChange > 1.5)
+write.table(DEA_res_USP7_snvc_sig, "DEA_res_USP7_snvc_sig.txt", sep = "\t")
+
+# USP7: yes vs. no
+dds_USP7c <- DESeqDataSetFromMatrix(countData = TALL_X01_counts_children, colData = children, design = ~USP7)
+dds_USP7c <- DESeq(dds_USP7c)
+DEA_res_USP7c = data.frame(na.omit(results(dds_USP7c, contrast=c("USP7","yes","no"))))
+DEA_res_USP7c_sig = DEA_res_USP7c %>% filter(padj < 0.01, log2FoldChange < -1.5 | log2FoldChange > 1.5)
+write.table(DEA_res_USP7c_sig, "DEA_res_USP7c_sig.txt", sep = "\t")
+
+# USP7alt: snv vs. nosnv
+children2 <- subset(children, children$USP7 == "yes")
+TALL_X01_counts2c <- TALL_X01_counts_children[,rownames(children2)]
+dds_USP7altc <- DESeqDataSetFromMatrix(countData = TALL_X01_counts2c, colData = children2, design = ~USP7_snv)
+dds_USP7altc <- DESeq(dds_USP7altc)
+DEA_res_USP7altc = data.frame(na.omit(results(dds_USP7altc, contrast=c("USP7_snv","yes","no"))))
+DEA_res_USP7altc_sig = DEA_res_USP7altc %>% filter(padj < 0.01, log2FoldChange < -1.5 | log2FoldChange > 1.5)
+```
