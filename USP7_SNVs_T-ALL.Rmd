@@ -18,13 +18,12 @@ library(survivalROC)
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(survminer))
-setwd("C:/Users/834733/Documents/EHU/Lab/ALL/T-ALL/USP7/Blood/Revision")
 ```
 
 ## Input data
 
 ```{r COG input, message = FALSE, warning = FALSE}
-COG <- data.frame(read_excel("Polonen/Polonen_metaData.xlsx", sheet = "Polonen_metaData_rs"), row.names = 1)
+COG <- data.frame(read_excel("Polonen_metaData.xlsx", sheet = "Polonen_metaData_rs"), row.names = 1)
 children <- subset(COG, COG$Age.group == "children")
 ```
 
